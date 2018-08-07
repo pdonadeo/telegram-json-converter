@@ -1,0 +1,128 @@
+type json <ocaml module="Yojson.Safe"> = abstract
+
+type chat_type = [
+  | Personal <json name="personal_chat">
+  | Private_group <json name="private_group">
+  | Private_channel <json name="private_channel">
+  | Bot_chat <json name="bot_chat">
+  | Private_supergroup <json name="private_supergroup">
+  | Saved_messages <json name="saved_messages">
+]
+
+type message_type = [
+  | Message <json name="message">
+  | Service <json name="service">
+]
+
+type date = string
+
+type action_type = [
+  | Allow_sending_messages <json name="allow_sending_messages">
+  | Clear_history <json name="clear_history">
+  | Create_channel <json name="create_channel">
+  | Create_group <json name="create_group">
+  | Delete_group_photo <json name="delete_group_photo">
+  | Edit_group_photo <json name="edit_group_photo">
+  | Edit_group_title <json name="edit_group_title">
+  | Invite_members <json name="invite_members">
+  | Join_group_by_link <json name="join_group_by_link">
+  | Migrate_from_group <json name="migrate_from_group">
+  | Migrate_to_supergroup <json name="migrate_to_supergroup">
+  | Phone_call <json name="phone_call">
+  | Pin_message <json name="pin_message">
+  | Remove_members <json name="remove_members">
+  | Score_in_game <json name="score_in_game">
+]
+
+type contact_information = {
+  first_name : string;
+  last_name : string;
+  phone_number : string;
+}
+
+type filename = string
+
+type discard_reason_type = [
+  | Busy <json name="busy">
+  | Disconnect <json name="disconnect">
+  | Hangup <json name="hangup">
+  | Missed <json name="missed">
+]
+
+type url = string
+
+type location_information = {
+  latitude : float;
+  longitude : float;
+}
+
+type media_type = [
+  | Animation <json name="animation">
+  | Audio_file <json name="audio_file">
+  | Sticker <json name="sticker">
+  | Video_file <json name="video_file">
+  | Video_message <json name="video_message">
+  | Voice_message <json name="voice_message">
+]
+
+type mime_type = string
+
+type message = {
+  id: int;
+  type_ <json name="type"> : message_type;
+  date: date;
+  edited: date;
+  text: json;
+  ?from: string option;
+  ?forwarded_from : string option;
+  ?file : filename option;
+  ?action : action_type option;
+  ?actor : string option;
+  ?address : string option;
+  ?author : string option;
+  ?contact_information : contact_information option;
+  ?contact_vcard : filename option;
+  ?discard_reason : discard_reason_type option;
+  ?duration_seconds : int option;
+  ?game_description : string option;
+  ?game_link : url option;
+  ?game_message_id : int option;
+  ?game_title : string option;
+  ?height : int option;
+  ?width : int option;
+  ?inviter : string option;
+  ?live_location_period_seconds : int option;
+  ?location_information : location_information option;
+  ?media_type : media_type option;
+  ?members : string nullable list option;
+  ?message_id : int option;
+  ?mime_type : mime_type option;
+  ?performer : string option;
+  ?title : string option;
+  ?photo : filename option;
+  ?place_name : string option;
+  ?reason_domain : string option;
+  ?reply_to_message_id : int option;
+  ?saved_from : string option;
+  ?score : int option;
+  ?sticker_emoji : string option;
+  ?via_bot : string option;
+}
+
+type chat = {
+  ?name: string option;
+  type_ <json name="type"> : chat_type;
+  messages: message list;
+}
+
+type dump = {
+  personal_information: json;
+  profile_pictures: json;
+  contacts: json;
+  frequent_contacts: json;
+  sessions: json;
+  web_sessions: json;
+  other_data: json;
+  chats: chat list;
+  left_chats: chat list;
+}

@@ -1,0 +1,35 @@
+(jbuild_version 1)
+
+(rule
+ ((targets (types_j.ml
+            types_j.mli))
+  (deps    (types.atd))
+  (action  (run atdgen -j -j-std ${^}))))
+
+(rule
+ ((targets (types_t.ml
+            types_t.mli))
+  (deps    (types.atd))
+  (action  (run atdgen -t ${^}))))
+
+(rule
+ ((targets (messages_page.ml))
+  (deps    (static/templates/messages_page.html))
+  (action  (run ocamlify --var-string template ${^} --output ${@}))))
+
+(executable
+ ((name telegramjson2html)
+  (modules (telegramjson2html types_j types_t commonTypes messages_page))
+  (libraries (core
+              core_extended
+              lens
+              ppx_deriving_yojson.runtime
+              ppx_deriving.show
+              atdgen-runtime
+              uuseg.string
+              uutf
+              jingoo))
+  (preprocess (pps (ppx_deriving.show
+                    ppx_deriving_yojson
+                    ppx_jane
+                    lens.ppx_deriving)))))

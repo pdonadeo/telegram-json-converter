@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block main %}
+<p>{{ number }} messaggi dal {{ day_begin }} al {{ day_end }}</p>
+
+<br>
+
+{% for m in msgs %}
+  <div>
+    <p>Date: {{ m.date }}</p>
+    <p>Edited: {{ m.edited }}</p>
+    <p>From: {{ m.from_ }}</p>
+    <p>{{ m.text }} </p>
+  </div>
+  <br>
+{% endfor %}
+
+{% endblock %}
