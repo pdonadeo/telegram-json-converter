@@ -28,6 +28,6 @@ OCaml environment to compile. Luckily it's very simple.
     $ jbuilder build src/telegramjson2html.exe
     ```
 
-## Developement status
+## Development status
 
 The project is in a very early stage, not intended for daily use. It's largely incomplete and buggy. Be advised :wink:
