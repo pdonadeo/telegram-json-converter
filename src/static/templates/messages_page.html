@@ -1,7 +1,12 @@
 {% extends "base.html" %}
 
 {% block main %}
-<p>{{ number }} messaggi dal {{ day_begin }} al {{ day_end }}</p>
+
+<p>Chat name: {{ chat_name }}</p>
+
+<p>Chunk number: {{ number }} of {{ total_chunks }}</p>
+
+<p>{{ messages_number }} messages from {{ day_begin|date(format="%Y-%m-%d") }} to {{ day_end|date(format="%Y-%m-%d") }}</p>
 
 <br>
 

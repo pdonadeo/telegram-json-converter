@@ -312,6 +312,7 @@ type message_chunk = {
   day_begin : Date.t;
   day_end : Date.t;
   number : int;
+  messages_number : int;
   messages : Message.t list;
 }
 

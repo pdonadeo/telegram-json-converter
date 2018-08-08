@@ -54,9 +54,11 @@ let split_messages_by_day ?(max_per_chunk=500) (messages : Message.t list) =
         end
       ) in
 
-    List.fold chunks ~init:[] ~f:(fun chunks' messages ->
+    let chunks_num = List.length chunks in
+
+    List.foldi chunks ~init:[] ~f:(fun number chunks' messages ->
       let messages = List.rev messages in
-      let number = List.length messages in
+      let messages_number  = List.length messages in
       let day_begin, day_end =
         match (List.hd messages), (List.last messages) with
         | Some fst, Some last -> begin
@@ -70,7 +72,8 @@ let split_messages_by_day ?(max_per_chunk=500) (messages : Message.t list) =
         | None, Some m -> let d = (m.date |> Date.of_time ~zone:localzone) in d, d
         | None, None -> assert false
       in
-      { day_begin; day_end; number; messages; }::chunks'
+      let number = chunks_num - number in
+      { day_begin; day_end; number; messages_number; messages; }::chunks'
     )
   end
   | None -> assert false
@@ -201,14 +204,19 @@ let prepare_message_date (m : Message.t) =
   ] ~init:data ~f:(fun acc (name, value) -> (name, (optional_int value ~f:ident))::acc) in
   data
 
-let prepare_chunk_data (chunk : message_chunk) =
+let prepare_chunk_data total_chunks chat_name (chunk : message_chunk) =
   let open Jg_types in
   let msgs_model = Tlist (List.map chunk.messages ~f:(fun m -> Tobj (prepare_message_date m))) in
+  let day_begin = Time.of_date_ofday ~zone:localzone chunk.day_begin (Time.Ofday.of_string "00:00") in
+  let day_end = Time.of_date_ofday ~zone:localzone chunk.day_end (Time.Ofday.of_string "23:59:59") in
   let models = [
-    "day_begin", Tstr (chunk.day_begin |> Date.to_string);
-    "day_end", Tstr (chunk.day_end |> Date.to_string);
+    "day_begin", Tstr (Time.to_string day_begin);
+    "day_end", Tstr (Time.to_string day_end);
     "number", Tint chunk.number;
+    "total_chunks", Tint total_chunks;
+    "messages_number", Tint chunk.messages_number;
     "msgs", msgs_model;
+    "chat_name", Tstr chat_name;
   ] in
   models
 
@@ -223,12 +231,13 @@ let save_chat ?(output_dir="OUTPUT") chat =
   );
 
   (* Save pages *)
+  let total_chunks = List.length chat.messages in
   List.iter chat.messages ~f:(fun chunk ->
     let day_begin = chunk.day_begin |> Date.to_string in
     let day_end = chunk.day_end |> Date.to_string in
     let chunk_fname = dir/(spf "messages_%s--%s.html" day_begin day_end) in
     Out_channel.with_file chunk_fname ~f:(fun oc ->
-      let models = prepare_chunk_data chunk in
+      let models = prepare_chunk_data total_chunks chat.name chunk in
       let env = { Jg_types.std_env with
         autoescape = false;
         filters = [
