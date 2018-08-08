@@ -160,8 +160,8 @@ let prepare_message_date (m : Message.t) =
     "discard_reason", optional_string m.discard_reason ~f:Discard_reason_type.show;
     "location_information", (optional m.location_information ~f:(fun li ->
         Tobj [
-          ("first_name", Tfloat li.latitude);
-          ("last_name", Tfloat li.longitude);
+          ("latitude", Tfloat li.latitude);
+          ("longitude", Tfloat li.longitude);
         ]
       )
     );
