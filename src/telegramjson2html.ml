@@ -268,7 +268,7 @@ let save_chat_to_disk chat_number (chat : Types_t.chat) =
       save_chat chat
     end
     | None -> begin
-      pf "Skipping chat numeber %d: no name available\n\n\n%!" chat_number
+      pf "Skipping chat number %d: no name available\n\n\n%!" chat_number
     end
   end
 
