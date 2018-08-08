@@ -153,6 +153,11 @@ module Message_type = struct
     | `Message
     | `Service
   ] [@@deriving yojson, compare, show]
+
+  let to_string t =
+    match t with
+    | `Message -> "message"
+    | `Service -> "service"
 end
 
 type filename = string [@@deriving yojson, compare, show]

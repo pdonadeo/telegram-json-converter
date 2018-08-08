@@ -6,12 +6,72 @@
 <br>
 
 {% for m in msgs %}
-  <div>
-    <p>Date: {{ m.date }}</p>
-    <p>Edited: {{ m.edited }}</p>
-    <p>From: {{ m.from_ }}</p>
-    <p>{{ m.text }} </p>
-  </div>
+  <div class="message">
+    <table style="border: 1px solid black;">
+      <tr><td>id                          </td><td>{{ m.id }}</td></tr>
+      <tr><td>type_                       </td><td>{{ m.type_ }}</td></tr>
+      <tr><td>date                        </td><td>{{ m.date|date(format="%H:%M") }}</td></tr>
+      <tr><td>edited                      </td><td>{{ m.edited|date(format="%Y-%m-%d") }}</td></tr>
+      <tr><td>from                        </td><td>{{ m.from_ }}</td></tr>
+      <tr><td>text                        </td><td>{{ m.text }}</td></tr>
+      <tr><td>forwarded_from              </td><td>{{ m.forwarded_from }}</td></tr>
+      <tr><td>file                        </td><td>{{ m.file }}</td></tr>
+      <tr><td>action                      </td><td>{{ m.action }}</td></tr>
+      <tr><td>actor                       </td><td>{{ m.actor }}</td></tr>
+      <tr><td>address                     </td><td>{{ m.address }}</td></tr>
+      <tr><td>author                      </td><td>{{ m.author }}</td></tr>
+      <tr><td>contact_information         </td><td>
+          {% if m.contact_information %}
+              <table style="border: 1px solid black;">
+                <tr><td>First name</td><td>{{ m.contact_information.first_name }}</td></tr>
+                <tr><td>Last name</td><td>{{ m.contact_information.last_name }}</td></tr>
+                <tr><td>Phone number</td><td>{{ m.contact_information.phone_number }}</td></tr>
+              </table>
+          {% endif %}
+          </td></tr>
+      <tr><td>contact_vcard               </td><td>{{ m.contact_vcard }}</td></tr>
+      <tr><td>discard_reason              </td><td>{{ m.discard_reason }}</td></tr>
+      <tr><td>duration_seconds            </td><td>{{ m.duration_seconds }}</td></tr>
+      <tr><td>game_description            </td><td>{{ m.game_description }}</td></tr>
+      <tr><td>game_link                   </td><td>{{ m.game_link }}</td></tr>
+      <tr><td>game_message_id             </td><td>{{ m.game_message_id }}</td></tr>
+      <tr><td>game_title                  </td><td>{{ m.game_title }}</td></tr>
+      <tr><td>height                      </td><td>{{ m.height }}</td></tr>
+      <tr><td>width                       </td><td>{{ m.width }}</td></tr>
+      <tr><td>inviter                     </td><td>{{ m.inviter }}</td></tr>
+      <tr><td>live_location_period_seconds</td><td>{{ m.live_location_period_seconds }}</td></tr>
+      <tr><td>location_information        </td><td>
+          {% if m.location_information %}
+              <table style="border: 1px solid black;">
+                <tr><td>Latitude</td><td>{{ m.location_information.latitude }}</td></tr>
+                <tr><td>Longitude</td><td>{{ m.location_information.longitude }}</td></tr>
+              </table>
+          {% endif %}
+          </td></tr>
+      <tr><td>media_type                  </td><td>{{ m.media_type }}</td></tr>
+      <tr><td>members                     </td><td>
+          {% if m.members %}
+          <ul>
+            {% for mem in m.members %}
+            <li>{{ mem }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          </td></tr>
+      <tr><td>message_id                  </td><td>{{ m.message_id }}</td></tr>
+      <tr><td>mime_type                   </td><td>{{ m.mime_type }}</td></tr>
+      <tr><td>performer                   </td><td>{{ m.performer }}</td></tr>
+      <tr><td>title                       </td><td>{{ m.title }}</td></tr>
+      <tr><td>photo                       </td><td>{{ m.photo }}</td></tr>
+      <tr><td>place_name                  </td><td>{{ m.place_name }}</td></tr>
+      <tr><td>reason_domain               </td><td>{{ m.reason_domain }}</td></tr>
+      <tr><td>reply_to_message_id         </td><td>{{ m.reply_to_message_id }}</td></tr>
+      <tr><td>saved_from                  </td><td>{{ m.saved_from }}</td></tr>
+      <tr><td>score                       </td><td>{{ m.score }}</td></tr>
+      <tr><td>sticker_emoji               </td><td>{{ m.sticker_emoji }}</td></tr>
+      <tr><td>via_bot                     </td><td>{{ m.via_bot }}</td></tr>
+    </table>
+  </div><!-- end of div "message" -->
   <br>
 {% endfor %}
 

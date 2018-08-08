@@ -36,7 +36,7 @@ let different_day reference current =
   then false
   else true
 
-let split_messages_by_day ?(max_per_chunk=100) (messages : Message.t list) =
+let split_messages_by_day ?(max_per_chunk=500) (messages : Message.t list) =
   match List.hd messages with
   | Some m -> begin
     let first_ts = m.date in
@@ -88,9 +88,9 @@ let print_chat chat =
   List.iter chat.messages ~f:print_chunk;
   pf "===============================================================================\n\n\n"
 
-let sanitize_path p =
+let sanitize_string s =
   (* Segment graphemes *)
-  let segments = Uuseg_string.fold_utf_8 `Grapheme_cluster (fun acc s -> s::acc) [] p in
+  let segments = Uuseg_string.fold_utf_8 `Grapheme_cluster (fun acc s -> s::acc) [] s in
 
   let rec loop ?(acc=[]) d =
     match Uutf.decode d with
@@ -112,23 +112,98 @@ let sanitize_path p =
     List.fold segments ~init:[] ~f:(fun segments' s ->
       (loop (Uutf.decoder ~encoding:`UTF_8 (`String s)))::segments'
     ) in
+  String.concat ~sep:"" segments'
 
-  let p' = String.concat ~sep:"" segments' in
+let sanitize_path p =
+  let p' = sanitize_string p in
 
   (* Replace the regular "/" with "∕", Unicode Character 'DIVISION SLASH' (U+2215) *)
   let pattern = String.Search_pattern.create "/" in
   String.Search_pattern.replace_all pattern ~in_:p' ~with_:"∕"
 
+module Filters = struct
+  open Jg_types
+
+  let date ?(defaults=[("format", Tstr "%Y-%m-%d")]) date_str kwargs =
+    let ts = Jg_runtime.string_of_tvalue date_str |> Time.of_string in
+    let fmt = Jg_runtime.jg_get_kvalue "format" kwargs ~defaults |> Jg_runtime.string_of_tvalue in
+    Tstr (Time.format ts fmt ~zone:localzone)
+end
+
+let optional v ~f =
+  Option.value_map v ~default:Jg_types.Tnull ~f
+
+let optional_string v ~f =
+  optional v ~f:(fun v -> Tstr (f v |> sanitize_string))
+
+let optional_int v ~f =
+  optional v ~f:(fun v -> Tint (f v))
+
+let prepare_message_date (m : Message.t) =
+  let open Jg_types in
+  let data = [
+    "id", Tint m.id;
+    "type_", Tstr (Message_type.to_string m.type_);
+    "date", Tstr (m.date |> Time.to_string);
+    "edited", Tstr (m.edited |> Time.to_string);
+    "text", Tstr (MessageText.to_string m.text |> sanitize_string);
+    "file", Tstr (Option.value m.file ~default:"");
+    "action",optional m.action ~f:(fun a -> Tstr (Action_type.show a));
+    "contact_information", (optional m.contact_information ~f:(fun ci ->
+        Tobj [
+          ("first_name", Tstr ci.first_name);
+          ("last_name", Tstr ci.last_name);
+          ("phone_number", Tstr ci.phone_number);
+        ]
+      )
+    );
+    "discard_reason", optional_string m.discard_reason ~f:Discard_reason_type.show;
+    "location_information", (optional m.location_information ~f:(fun li ->
+        Tobj [
+          ("first_name", Tfloat li.latitude);
+          ("last_name", Tfloat li.longitude);
+        ]
+      )
+    );
+    "media_type", optional_string m.media_type ~f:Media_type.show;
+    "members", optional m.members ~f:(fun members -> Tlist (List.map members ~f:(fun m -> Tstr (sanitize_string m))))
+  ] in
+  let data = List.fold [
+    ("from_", m.from);
+    ("forwarded_from", m.forwarded_from);
+    ("actor", m.actor);
+    ("address", m.address);
+    ("author", m.author);
+    ("contact_vcard", m.contact_vcard);
+    ("game_description", m.game_description);
+    ("game_link", m.game_link);
+    ("game_title", m.game_title);
+    ("inviter", m.inviter);
+    ("performer", m.performer);
+    ("title", m.title);
+    ("place_name", m.place_name);
+    ("reason_domain", m.reason_domain);
+    ("saved_from", m.saved_from);
+    ("sticker_emoji", m.sticker_emoji);
+    ("via_bot", m.via_bot);
+    ("mime_type", m.mime_type);
+    ("photo", m.photo);
+  ] ~init:data ~f:(fun acc (name, value) -> (name, (optional_string value ~f:ident))::acc) in
+  let data = List.fold [
+    ("duration_seconds", m.duration_seconds);
+    ("game_message_id", m.game_message_id);
+    ("height", m.height);
+    ("width", m.width);
+    ("live_location_period_seconds", m.live_location_period_seconds);
+    ("message_id", m.message_id);
+    ("reply_to_message_id", m.reply_to_message_id);
+    ("score", m.score);
+  ] ~init:data ~f:(fun acc (name, value) -> (name, (optional_int value ~f:ident))::acc) in
+  data
+
 let prepare_chunk_data (chunk : message_chunk) =
   let open Jg_types in
-  let msgs_model = Tlist (List.map chunk.messages ~f:(fun m ->
-    Tobj [
-      "date", Tstr (m.date |> Time.to_string);
-      "edited", Tstr (m.edited |> Time.to_string);
-      "from_", Tstr (Option.value m.from ~default:"");
-      "text", Tstr (MessageText.to_string m.text);
-    ]
-  )) in
+  let msgs_model = Tlist (List.map chunk.messages ~f:(fun m -> Tobj (prepare_message_date m))) in
   let models = [
     "day_begin", Tstr (chunk.day_begin |> Date.to_string);
     "day_end", Tstr (chunk.day_end |> Date.to_string);
@@ -156,6 +231,9 @@ let save_chat ?(output_dir="OUTPUT") chat =
       let models = prepare_chunk_data chunk in
       let env = { Jg_types.std_env with
         autoescape = false;
+        filters = [
+          ("date", Jg_runtime.func_arg1 Filters.date);
+        ];
         template_dirs = ["src/static/templates"]
       } in
       let data = Jg_template.from_file ~env ~models "messages_page.html" in
@@ -164,7 +242,7 @@ let save_chat ?(output_dir="OUTPUT") chat =
   )
 
 let save_chat_to_disk chat_number (chat : Types_t.chat) =
-  if chat_number = 559 then begin
+  if chat_number <> 10000 then begin
     match chat.name with
     | Some name -> begin
       let name = sanitize_path name in
@@ -193,49 +271,3 @@ let () =
   List.iteri dump.chats ~f:(fun idx chat ->
     save_chat_to_disk (idx + 1) chat
   )
-
-(*
-  let acc =
-    List.foldi dump.chats ~init:String.Map.empty ~f:(fun i1 acc chat ->
-      pf "===============================================================================\n";
-      pf "%03d Chat name = \"%s\"\n%!" (i1 + 1) (Option.value ~default:"N/A" chat.name);
-      pf "===============================================================================\n";
-
-      let acc =
-        List.foldi chat.messages ~init:acc ~f:(fun i2 acc msg ->
-        match msg with
-        | `Assoc l -> begin
-          let keys = List.map l ~f:fst |> List.sort ~compare:String.compare in
-          List.iter l ~f:(fun (k, v) ->
-            if k = "media_type" then pf "GUARDA QUI -> %s\n%!" (Yojson.Safe.to_string v)
-          );
-          let md5 = String.concat keys |> Md5.digest_string |> Md5.to_hex in
-          if String.Map.existsi acc ~f:(fun ~key ~data -> key = md5)
-          then acc
-          else String.Map.add_exn acc ~key:md5 ~data:keys
-        end
-        | _ -> fail msg
-      ) in
-
-      pf "===============================================================================\n\n\n";
-      acc
-    ) in
-*)
-
-(*
-  let remove_commons xs =
-    let xs_set = String.Set.of_list xs in
-    let common_set = String.Set.of_list [
-      "id";
-      "type";
-      "date";
-      "edited";
-      "text"
-    ] in
-    let dif_set = String.Set.diff xs_set common_set in
-    String.Set.to_list dif_set |> List.sort ~compare:String.compare in
-
-  String.Map.iteri acc ~f:(fun ~key ~data ->
-    pf "%s -> %s\n%!" key (String.concat ~sep:" " (remove_commons data))
-  )
-*)
